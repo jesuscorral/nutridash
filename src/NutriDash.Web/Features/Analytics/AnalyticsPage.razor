@@ -1,0 +1,126 @@
+@page "/analytics"
+@rendermode InteractiveServer
+@using NutriDash.Features.Analytics
+@using NutriDash.Components.Shared
+@inject AnalyticsService AnalyticsSvc
+
+<PageTitle>Analítica — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Analítica</h1>
+        <p class="page-subtitle">Tendencias y evolución de tu salud</p>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Calculando estadísticas...</span></div>
+}
+else
+{
+    <!-- Chart Row -->
+    <div class="charts-grid charts-full">
+        <div class="card">
+            <div class="card-header"><h3>📉 Evolución del peso</h3></div>
+            <SparklineChart Values="@_weightSeries" Color="#4f8ef7" FillColor="rgba(79,142,247,0.12)"
+                            Unit="kg" Height="160" ShowLabels="true" Labels="@_dateLabels" />
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>❤️ Tensión sistólica</h3></div>
+            <SparklineChart Values="@_bpSeries" Color="#f75f4f" FillColor="rgba(247,95,79,0.12)"
+                            Unit="mmHg" Height="160" ShowLabels="true" Labels="@_dateLabels"
+                            WarningThreshold="130" />
+        </div>
+    </div>
+
+    <div class="charts-grid charts-full">
+        <div class="card">
+            <div class="card-header"><h3>⚡ Energía diaria</h3></div>
+            <SparklineChart Values="@_energySeries" Color="#00c896" FillColor="rgba(0,200,150,0.12)"
+                            Unit="/5" Height="120" Min="1" Max="5" ShowLabels="true" Labels="@_dateLabels" />
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>🎯 Adherencia diaria</h3></div>
+            <SparklineChart Values="@_adhSeries" Color="#f59e0b" FillColor="rgba(245,158,11,0.12)"
+                            Unit="%" Height="120" Min="0" Max="100" ShowLabels="true" Labels="@_dateLabels" />
+        </div>
+    </div>
+
+    <!-- Weekly Stats Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📅 Resumen semanal</h3>
+            <span class="badge">Últimas @_weeklyStats.Count semanas</span>
+        </div>
+        @if (_weeklyStats.Any())
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Semana</th>
+                            <th>Peso medio</th>
+                            <th>Δ Peso</th>
+                            <th>Tensión media</th>
+                            <th>Energía</th>
+                            <th>Adherencia</th>
+                            <th>Pasos</th>
+                            <th>Health Score</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var w in _weeklyStats)
+                        {
+                            <tr>
+                                <td><strong>@w.WeekStart.ToString("dd/MM")</strong></td>
+                                <td>@w.AvgWeight.ToString("F1") kg</td>
+                                <td class="@(w.WeightDelta < 0 ? "text-green" : w.WeightDelta > 0 ? "text-red" : "")">
+                                    @w.WeightDelta.ToString("+0.0;-0.0;0.0") kg
+                                </td>
+                                <td>@w.AvgSystolic.ToString("F0")/@w.AvgDiastolic.ToString("F0")</td>
+                                <td>@w.AvgEnergy.ToString("F1")/5</td>
+                                <td>@w.AvgAdherence.ToString("F0")%</td>
+                                <td>@w.TotalSteps.ToString("N0")</td>
+                                <td>
+                                    <div class="score-pill" style="--score-pct: @((int)w.Score.Total)%">
+                                        <span>@((int)w.Score.Total)</span>
+                                    </div>
+                                </td>
+                                <td><span class="status-badge status-@w.Score.Status.ToLower()">@w.Score.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state"><span>📊</span><p>No hay suficientes datos para calcular estadísticas semanales.</p></div>
+        }
+    </div>
+}
+
+@code {
+    private List<WeeklyStats> _weeklyStats = new();
+    private List<double> _weightSeries = new();
+    private List<double> _bpSeries = new();
+    private List<double> _energySeries = new();
+    private List<double> _adhSeries = new();
+    private List<string> _dateLabels = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _weeklyStats = await AnalyticsSvc.GetWeeklyStatsAsync(6);
+        var all = await AnalyticsSvc.GetAllTrackingAsync();
+        var sorted = all.OrderBy(t => t.Date).TakeLast(28).ToList();
+        _weightSeries = sorted.Select(t => (double)t.Weight).ToList();
+        _bpSeries = sorted.Select(t => (double)t.SystolicBP).ToList();
+        _energySeries = sorted.Select(t => (double)t.Energy).ToList();
+        _adhSeries = sorted.Select(t => (double)t.Adherence).ToList();
+        _dateLabels = sorted.Select(t => t.Date.ToString("dd/MM")).ToList();
+        _loading = false;
+    }
+}

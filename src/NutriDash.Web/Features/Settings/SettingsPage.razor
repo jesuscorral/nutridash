@@ -1,0 +1,107 @@
+@page "/settings"
+@rendermode InteractiveServer
+@using NutriDash.Features.Settings
+@using NutriDash.Infrastructure.Data.Entities
+@inject SettingsService SettingsSvc
+
+<PageTitle>Configuración — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Configuración</h1>
+        <p class="page-subtitle">Perfil personal y preferencias del sistema</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_successMsg))
+{
+    <div class="alert alert-success"><span>✅</span> @_successMsg</div>
+}
+
+<div class="settings-layout">
+    <!-- User Profile -->
+    <div class="card">
+        <div class="card-header"><h3>👤 Perfil personal</h3></div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" class="form-control" @bind="_metric.Name" />
+            </div>
+            <div class="form-group">
+                <label>Edad (años)</label>
+                <input type="number" class="form-control" @bind="_metric.Age" />
+            </div>
+            <div class="form-group">
+                <label>Altura (cm)</label>
+                <input type="number" step="0.5" class="form-control" @bind="_metric.Height" />
+            </div>
+            <div class="form-group">
+                <label>Peso objetivo (kg)</label>
+                <input type="number" step="0.5" class="form-control" @bind="_metric.GoalWeight" />
+            </div>
+            <div class="form-group">
+                <label>Tensión sistólica objetivo</label>
+                <input type="number" class="form-control" @bind="_metric.TargetSystolicBP" />
+            </div>
+            <div class="form-group">
+                <label>Tensión diastólica objetivo</label>
+                <input type="number" class="form-control" @bind="_metric.TargetDiastolicBP" />
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" @onclick="SaveProfile">💾 Guardar perfil</button>
+        </div>
+    </div>
+
+    <!-- Gemini API -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🤖 Integración Gemini AI</h3>
+            <span class="badge @(_geminiKey.Length > 10 ? "badge-green" : "badge-gray")">
+                @(_geminiKey.Length > 10 ? "✓ Configurado" : "Sin configurar")
+            </span>
+        </div>
+        <p class="settings-hint">
+            Necesario para generar planes de comidas y listas de la compra con IA.<br />
+            Obtén tu clave gratuita en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>.
+        </p>
+        <div class="form-group">
+            <label>Gemini API Key</label>
+            <div class="input-with-toggle">
+                <input type="@(_showKey ? "text" : "password")" class="form-control"
+                       @bind="_geminiKey" placeholder="AIza..." />
+                <button class="btn-icon-sm" @onclick="() => _showKey = !_showKey">
+                    @(_showKey ? "🙈" : "👁️")
+                </button>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" @onclick="SaveGeminiKey">💾 Guardar clave</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserMetric _metric = new();
+    private string _geminiKey = "";
+    private string? _successMsg;
+    private bool _showKey;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _metric = await SettingsSvc.GetUserMetricAsync();
+        _geminiKey = await SettingsSvc.GetGeminiKeyAsync();
+    }
+
+    private async Task SaveProfile()
+    {
+        await SettingsSvc.SaveUserMetricAsync(_metric);
+        _successMsg = "Perfil actualizado correctamente.";
+    }
+
+    private async Task SaveGeminiKey()
+    {
+        await SettingsSvc.SaveGeminiKeyAsync(_geminiKey);
+        _successMsg = "Clave de Gemini guardada.";
+    }
+}

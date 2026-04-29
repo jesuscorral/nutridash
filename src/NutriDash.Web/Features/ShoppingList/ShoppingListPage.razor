@@ -1,0 +1,99 @@
+@page "/shopping-list"
+@rendermode InteractiveServer
+@using NutriDash.Features.ShoppingList
+@inject ShoppingListService ShoppingSvc
+
+<PageTitle>Lista de la Compra — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Lista de la Compra</h1>
+        <p class="page-subtitle">Generada desde el plan semanal actual</p>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-primary" @onclick="Generate">🛒 Generar lista</button>
+        @if (_categories.Any())
+        {
+            <button class="btn btn-ghost" @onclick="Print">🖨️ Imprimir</button>
+        }
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Consolidando ingredientes...</span></div>
+}
+else if (!_categories.Any())
+{
+    <div class="empty-state card">
+        <span style="font-size:3rem">🛒</span>
+        <h3>Lista vacía</h3>
+        <p>Genera un plan de comidas primero, luego haz clic en "Generar lista".</p>
+    </div>
+}
+else
+{
+    <div class="shopping-stats">
+        <div class="stat-pill">📦 @_totalItems ingredientes</div>
+        <div class="stat-pill">📂 @_categories.Count categorías</div>
+    </div>
+
+    <div class="shopping-grid" id="shopping-list-print">
+        @foreach (var cat in _categories)
+        {
+            <div class="shopping-category card">
+                <div class="category-header">
+                    <span class="cat-icon">@cat.Icon</span>
+                    <h3>@cat.Name</h3>
+                    <span class="badge">@cat.Items.Count</span>
+                </div>
+                <ul class="shopping-items">
+                    @foreach (var item in cat.Items.OrderBy(i => i.Name))
+                    {
+                        <li class="shopping-item @(_checked.Contains(item.Name) ? "checked" : "")"
+                            @onclick="() => ToggleItem(item.Name)">
+                            <div class="item-check">@(_checked.Contains(item.Name) ? "✅" : "⬜")</div>
+                            <div class="item-info">
+                                <span class="item-name">@item.Name</span>
+                                <span class="item-meals">@item.Meals comida(s)</span>
+                            </div>
+                            <div class="item-grams">@item.TotalGrams.ToString("F0") g</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <div class="progress-bar-wrap">
+        <div class="progress-label">Completado: @_checked.Count / @_totalItems</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:@((_checked.Count * 100.0 / Math.Max(1,_totalItems)).ToString("F0"))%"></div></div>
+    </div>
+}
+
+@code {
+    private List<ShoppingCategory> _categories = new();
+    private HashSet<string> _checked = new();
+    private bool _loading;
+    private int _totalItems;
+
+    protected override async Task OnInitializedAsync() => await Generate();
+
+    private async Task Generate()
+    {
+        _loading = true;
+        _categories = await ShoppingSvc.GenerateFromCurrentWeekAsync();
+        _totalItems = _categories.Sum(c => c.Items.Count);
+        _loading = false;
+    }
+
+    private void ToggleItem(string name)
+    {
+        if (!_checked.Add(name)) _checked.Remove(name);
+    }
+
+    private void Print()
+    {
+        // Handled via CSS @media print
+    }
+}

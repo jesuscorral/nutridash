@@ -1,0 +1,222 @@
+@page "/meal-plan"
+@rendermode InteractiveServer
+@using NutriDash.Features.MealPlan
+@using NutriDash.Infrastructure.Data.Entities
+@using NutriDash.Components.Shared
+@inject MealPlanService MealSvc
+
+<PageTitle>Plan de Comidas — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Plan de Comidas</h1>
+        <p class="page-subtitle">Semana del @_weekStart.ToString("dd MMMM", new System.Globalization.CultureInfo("es-ES"))</p>
+    </div>
+    <button class="btn btn-primary" @onclick="GenerateNewWeek" disabled="@_generating">
+        @if (_generating)
+        { <span class="spinner-sm"></span><span>Generando...</span> }
+        else
+        { <span>🤖</span><span>Nueva semana con IA</span> }
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMsg))
+{
+    <div class="alert alert-error"><span>❌</span> @_errorMsg</div>
+}
+@if (!string.IsNullOrEmpty(_successMsg))
+{
+    <div class="alert alert-success"><span>✅</span> @_successMsg</div>
+}
+
+<!-- History selector -->
+@if (_batches.Count > 1)
+{
+    <div class="batch-selector">
+        <span>📚 Historial:</span>
+        @foreach (var b in _batches.Take(5))
+        {
+            <button class="batch-btn @(_selectedBatch == b.Batch ? "active" : "")"
+                    @onclick="() => LoadBatch(b.Batch)">
+                @b.WeekStart.ToString("dd/MM") — Gen @b.Batch
+            </button>
+        }
+    </div>
+}
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Cargando plan...</span></div>
+}
+else if (!_plans.Any())
+{
+    <div class="empty-state card">
+        <span style="font-size:3rem">🍽️</span>
+        <h3>Sin plan esta semana</h3>
+        <p>Genera un plan personalizado con IA basado en tus datos de salud.</p>
+        <button class="btn btn-primary" @onclick="GenerateNewWeek">🤖 Generar plan con IA</button>
+    </div>
+}
+else
+{
+    <div class="day-tabs">
+        @foreach (var plan in _plans)
+        {
+            <button class="day-tab @(_selectedDay == plan.Day ? "active" : "")"
+                    @onclick="() => _selectedDay = plan.Day">
+                <span class="day-name">@GetDayShort(plan.Day)</span>
+                <span class="day-workout @GetWorkoutClass(plan.WorkoutType)">@GetWorkoutIcon(plan.WorkoutType)</span>
+            </button>
+        }
+    </div>
+
+    @if (SelectedPlan != null)
+    {
+        <div class="day-plan">
+            <div class="day-plan-header">
+                <h2>@GetDayName(SelectedPlan.Day)</h2>
+                <span class="workout-badge @GetWorkoutClass(SelectedPlan.WorkoutType)">
+                    @GetWorkoutIcon(SelectedPlan.WorkoutType) @SelectedPlan.WorkoutType.ToString()
+                </span>
+            </div>
+
+
+            <div class="day-totals">
+                <div class="macro-total"><span>🔥</span><strong>@SelectedPlan.Meals.Sum(m => m.TotalCalories)</strong><small>kcal</small></div>
+                <div class="macro-total"><span class="dot-p">●</span><strong>@SelectedPlan.Meals.Sum(m => m.Protein).ToString("F0")g</strong><small>proteína</small></div>
+                <div class="macro-total"><span class="dot-c">●</span><strong>@SelectedPlan.Meals.Sum(m => m.Carbs).ToString("F0")g</strong><small>carbos</small></div>
+                <div class="macro-total"><span class="dot-f">●</span><strong>@SelectedPlan.Meals.Sum(m => m.Fat).ToString("F0")g</strong><small>grasa</small></div>
+            </div>
+
+            <MacroBar Protein="@((int)SelectedPlan.Meals.Sum(m => m.Protein))" Carbs="@((int)SelectedPlan.Meals.Sum(m => m.Carbs))" Fat="@((int)SelectedPlan.Meals.Sum(m => m.Fat))" />
+
+            <div class="meals-grid">
+                @foreach (var meal in SelectedPlan.Meals.OrderBy(m => m.MealType))
+                {
+                    <div class="meal-card">
+                        <div class="meal-header">
+                            <span class="meal-type-icon">@GetMealIcon(meal.MealType)</span>
+                            <div>
+                                <div class="meal-type-label">@GetMealLabel(meal.MealType)</div>
+                                <div class="meal-name">@meal.Name</div>
+                            </div>
+                            <div class="meal-calories">@meal.TotalCalories <small>kcal</small></div>
+                        </div>
+                        <div class="meal-macros">
+                            <span class="macro-chip macro-p">P: @meal.Protein.ToString("F0")g</span>
+                            <span class="macro-chip macro-c">C: @meal.Carbs.ToString("F0")g</span>
+                            <span class="macro-chip macro-f">G: @meal.Fat.ToString("F0")g</span>
+                        </div>
+                        @if (meal.Ingredients.Any())
+                        {
+                            <div class="ingredients-list">
+                                @foreach (var ing in meal.Ingredients)
+                                {
+                                    <div class="ingredient-row">
+                                        <span>@ing.Name</span>
+                                        <span class="ing-grams">@ing.Grams.ToString("F0")g</span>
+                                        <span class="ing-cal">@ing.Calories kcal</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+
+@code {
+    private List<NutriDash.Infrastructure.Data.Entities.MealPlan> _plans = new();
+    private List<(int Batch, DateOnly WeekStart, DateTime Generated)> _batches = new();
+    private DayOfWeek _selectedDay = DayOfWeek.Monday;
+    private DateOnly _weekStart;
+    private int _selectedBatch;
+    private bool _loading = true;
+    private bool _generating;
+    private string? _errorMsg;
+    private string? _successMsg;
+
+    private NutriDash.Infrastructure.Data.Entities.MealPlan? SelectedPlan
+        => _plans.FirstOrDefault(p => p.Day == _selectedDay);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        int dow = (int)today.DayOfWeek;
+        _weekStart = today.AddDays(dow == 0 ? -6 : -(dow - 1));
+        _selectedDay = today.DayOfWeek == DayOfWeek.Sunday ? DayOfWeek.Monday : today.DayOfWeek;
+
+        await LoadCurrentWeekAsync();
+        _batches = await MealSvc.GetHistoryBatchesAsync();
+        _loading = false;
+    }
+
+    private async Task LoadCurrentWeekAsync()
+    {
+        _plans = await MealSvc.GetCurrentWeekAsync();
+        if (_plans.Any()) _selectedBatch = _plans.First().GenerationBatch;
+    }
+
+    private async Task LoadBatch(int batch)
+    {
+        _selectedBatch = batch;
+        _plans = await MealSvc.GetBatchAsync(batch);
+    }
+
+    private async Task GenerateNewWeek()
+    {
+        _generating = true;
+        _errorMsg = null;
+        _successMsg = null;
+        var (ok, err) = await MealSvc.GenerateNewWeekAsync();
+        if (ok)
+        {
+            _successMsg = "✅ Plan semanal generado con éxito.";
+            await LoadCurrentWeekAsync();
+            _batches = await MealSvc.GetHistoryBatchesAsync();
+        }
+        else _errorMsg = $"Error: {err}";
+        _generating = false;
+    }
+
+    private static string GetDayShort(DayOfWeek d) => d switch
+    {
+        DayOfWeek.Monday => "Lun", DayOfWeek.Tuesday => "Mar",
+        DayOfWeek.Wednesday => "Mié", DayOfWeek.Thursday => "Jue",
+        DayOfWeek.Friday => "Vie", DayOfWeek.Saturday => "Sáb",
+        _ => "Dom"
+    };
+
+    private static string GetDayName(DayOfWeek d) => d switch
+    {
+        DayOfWeek.Monday => "Lunes", DayOfWeek.Tuesday => "Martes",
+        DayOfWeek.Wednesday => "Miércoles", DayOfWeek.Thursday => "Jueves",
+        DayOfWeek.Friday => "Viernes", DayOfWeek.Saturday => "Sábado",
+        _ => "Domingo"
+    };
+
+    private static string GetWorkoutIcon(WorkoutType wt) => wt switch
+    {
+        WorkoutType.Strength => "💪", WorkoutType.Cardio => "🏃", _ => "😴"
+    };
+
+    private static string GetWorkoutClass(WorkoutType wt) => wt switch
+    {
+        WorkoutType.Strength => "workout-strength",
+        WorkoutType.Cardio => "workout-cardio",
+        _ => "workout-rest"
+    };
+
+    private static string GetMealIcon(MealType t) => t switch
+    {
+        MealType.Breakfast => "🌅", MealType.Lunch => "☀️", _ => "🌙"
+    };
+
+    private static string GetMealLabel(MealType t) => t switch
+    {
+        MealType.Breakfast => "Desayuno", MealType.Lunch => "Comida", _ => "Cena"
+    };
+}

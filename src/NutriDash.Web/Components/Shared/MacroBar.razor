@@ -1,0 +1,29 @@
+@{
+    var total = Protein + Carbs + Fat;
+    if (total < 1) total = 1;
+    var pPct = Protein * 100.0 / total;
+    var cPct = Carbs * 100.0 / total;
+    var fPct = Fat * 100.0 / total;
+    var calFromP = Protein * 4;
+    var calFromC = Carbs * 4;
+    var calFromF = Fat * 9;
+    var totalCal = calFromP + calFromC + calFromF;
+}
+<div class="macro-bar-wrap">
+    <div class="macro-bar-track">
+        <div class="macro-seg macro-seg-p" style="width:@pPct.ToString("F1")%" title="Proteína @Protein g"></div>
+        <div class="macro-seg macro-seg-c" style="width:@cPct.ToString("F1")%" title="Carbos @Carbs g"></div>
+        <div class="macro-seg macro-seg-f" style="width:@fPct.ToString("F1")%" title="Grasa @Fat g"></div>
+    </div>
+    <div class="macro-bar-legend">
+        <span class="macro-leg"><span class="dot dot-p"></span>P: @Protein g (@calFromP kcal · @pPct.ToString("F0")%)</span>
+        <span class="macro-leg"><span class="dot dot-c"></span>C: @Carbs g (@calFromC kcal · @cPct.ToString("F0")%)</span>
+        <span class="macro-leg"><span class="dot dot-f"></span>G: @Fat g (@calFromF kcal · @fPct.ToString("F0")%)</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Protein { get; set; }
+    [Parameter] public int Carbs { get; set; }
+    [Parameter] public int Fat { get; set; }
+}

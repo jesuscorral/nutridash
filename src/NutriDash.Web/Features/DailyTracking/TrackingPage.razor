@@ -1,0 +1,255 @@
+@page "/tracking"
+@rendermode InteractiveServer
+@using NutriDash.Features.DailyTracking
+@using Entities = NutriDash.Infrastructure.Data.Entities
+@using NutriDash.Infrastructure.Data.Entities
+@inject TrackingService TrackSvc
+
+<PageTitle>Tracking Diario — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tracking Diario</h1>
+        <p class="page-subtitle">Registra tus métricas de hoy</p>
+    </div>
+</div>
+
+<div class="tracking-layout">
+    <!-- Form -->
+    <div class="card form-card">
+        <div class="card-header">
+            <h3>@(_editEntry.Id > 0 ? "✏️ Actualizar registro" : "➕ Nuevo registro")</h3>
+            <span class="badge">@_editEntry.Date.ToString("dd/MM/yyyy")</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_successMsg))
+        {
+            <div class="alert alert-success"><span>✅</span> @_successMsg</div>
+        }
+        @if (!string.IsNullOrEmpty(_errorMsg))
+        {
+            <div class="alert alert-error"><span>❌</span> @_errorMsg</div>
+        }
+
+        <EditForm Model="_editEntry" OnValidSubmit="HandleSubmit">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" class="form-control"
+                           value="@_editEntry.Date.ToString("yyyy-MM-dd")"
+                           @onchange="OnDateChange" />
+                </div>
+
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" step="0.1" class="form-control" placeholder="85.5"
+                           @bind="_editEntry.Weight" />
+                </div>
+
+                <div class="form-group">
+                    <label>Tensión Sistólica (mmHg)</label>
+                    <input type="number" class="form-control" placeholder="130"
+                           @bind="_editEntry.SystolicBP" />
+                </div>
+
+                <div class="form-group">
+                    <label>Tensión Diastólica (mmHg)</label>
+                    <input type="number" class="form-control" placeholder="85"
+                           @bind="_editEntry.DiastolicBP" />
+                </div>
+
+                <div class="form-group">
+                    <label>Pasos</label>
+                    <input type="number" class="form-control" placeholder="8000"
+                           @bind="_editEntry.Steps" />
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de entrenamiento</label>
+                    <select class="form-control" @bind="_editEntry.WorkoutType">
+                        <option value="@WorkoutType.Strength">💪 Fuerza</option>
+                        <option value="@WorkoutType.Cardio">🏃 Cardio</option>
+                        <option value="@WorkoutType.Rest">😴 Descanso</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Sueño (horas)</label>
+                    <input type="number" step="0.5" class="form-control" placeholder="7.5"
+                           @bind="_editEntry.Sleep" />
+                </div>
+
+                <div class="form-group full-span">
+                    <label>Energía: <strong>@_editEntry.Energy/5</strong></label>
+                    <input type="range" min="1" max="5" step="1" class="slider"
+                           @bind="_editEntry.Energy" />
+                    <div class="slider-labels">
+                        <span>😴 Agotado</span><span>⚡ Lleno de energía</span>
+                    </div>
+                </div>
+
+                <div class="form-group full-span">
+                    <label>Adherencia a la dieta: <strong>@_editEntry.Adherence%</strong></label>
+                    <input type="range" min="0" max="100" step="5" class="slider"
+                           @bind="_editEntry.Adherence" />
+                    <div class="slider-labels">
+                        <span>0% Sin cumplir</span><span>100% Perfecto</span>
+                    </div>
+                </div>
+
+                <div class="form-group full-span">
+                    <label>Notas (opcional)</label>
+                    <textarea class="form-control" rows="2" placeholder="Cómo te has sentido hoy..."
+                              @bind="_editEntry.Notes"></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" disabled="@_saving">
+                    @if (_saving) { <span class="spinner-sm"></span> } else { <span>💾</span> }
+                    @(_saving ? "Guardando..." : "Guardar registro")
+                </button>
+                <button type="button" class="btn btn-ghost" @onclick="ResetForm">Cancelar</button>
+            </div>
+        </EditForm>
+    </div>
+
+    <!-- History Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 Últimos registros</h3>
+            <span class="badge">@_history.Count entradas</span>
+        </div>
+
+        @if (_history.Any())
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Peso</th>
+                            <th>Tensión</th>
+                            <th>Pasos</th>
+                            <th>Entrenamiento</th>
+                            <th>Sueño</th>
+                            <th>Energía</th>
+                            <th>Adherencia</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in _history)
+                        {
+                            <tr class="@(entry.Date == DateOnly.FromDateTime(DateTime.Today) ? "row-today" : "")">
+                                <td><strong>@entry.Date.ToString("dd/MM")</strong></td>
+                                <td>@entry.Weight.ToString("F1") kg</td>
+                                <td>@entry.SystolicBP/@entry.DiastolicBP</td>
+                                <td>@entry.Steps.ToString("N0")</td>
+                                <td>
+                                    @if (entry.WorkoutType == WorkoutType.Strength)
+                                    {
+                                        <span class="badge badge-blue">💪 Fuerza</span>
+                                    }
+                                    else if (entry.WorkoutType == WorkoutType.Cardio)
+                                    {
+                                        <span class="badge badge-green">🏃 Cardio</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-gray">😴 Descanso</span>
+                                    }
+                                </td>
+                                <td>@entry.Sleep.ToString("F1")h</td>
+                                <td><EnergyDots Value="@entry.Energy" /></td>
+                                <td>
+                                    <div class="adh-bar">
+                                        <div class="adh-fill" style="width:@(entry.Adherence)%"></div>
+                                        <span>@entry.Adherence%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="Editar" @onclick="() => EditEntry(entry)">✏️</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <span>📊</span>
+                <p>Sin registros todavía. ¡Empieza registrando hoy!</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DailyTracking _editEntry = NewEntry();
+    private List<DailyTracking> _history = new();
+    private bool _saving;
+    private string? _successMsg;
+    private string? _errorMsg;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistoryAsync();
+        var today = await TrackSvc.GetTodayAsync();
+        if (today != null) _editEntry = today;
+    }
+
+    private void OnDateChange(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var d))
+            _editEntry.Date = d;
+    }
+
+    private async Task LoadHistoryAsync()
+        => _history = await TrackSvc.GetRecentAsync(21);
+
+    private async Task HandleSubmit()
+    {
+        _saving = true;
+        _successMsg = null;
+        _errorMsg = null;
+        var (ok, err) = await TrackSvc.SaveAsync(_editEntry);
+        if (ok)
+        {
+            _successMsg = "✅ Registro guardado correctamente.";
+            await LoadHistoryAsync();
+            ResetForm();
+        }
+        else _errorMsg = err;
+        _saving = false;
+    }
+
+    private void EditEntry(DailyTracking entry)
+    {
+        _editEntry = new DailyTracking
+        {
+            Id = entry.Id, Date = entry.Date, Weight = entry.Weight,
+            SystolicBP = entry.SystolicBP, DiastolicBP = entry.DiastolicBP,
+            Steps = entry.Steps, WorkoutType = entry.WorkoutType,
+            Sleep = entry.Sleep, Energy = entry.Energy,
+            Adherence = entry.Adherence, Notes = entry.Notes
+        };
+        _successMsg = null;
+        _errorMsg = null;
+    }
+
+    private void ResetForm()
+    {
+        _editEntry = NewEntry();
+        _successMsg = null;
+        _errorMsg = null;
+    }
+
+    private static DailyTracking NewEntry() => new()
+    {
+        Date = DateOnly.FromDateTime(DateTime.Today),
+        Energy = 3, Adherence = 80, Sleep = 7, Steps = 8000, Weight = 85
+    };
+}

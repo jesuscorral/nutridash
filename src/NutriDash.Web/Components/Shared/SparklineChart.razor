@@ -1,0 +1,73 @@
+@if (Values != null && Values.Count > 1)
+{
+    var minVal = Min ?? Values.Min();
+    var maxVal = Max ?? Values.Max();
+    var range = maxVal - minVal;
+    if (range < 0.001) range = 1;
+
+    int w = 600;
+    int h = Height;
+    int pad = 36;
+    double xStep = (double)(w - pad * 2) / (Values.Count - 1);
+
+    var points = Values.Select((v, i) =>
+    {
+        double x = pad + i * xStep;
+        double y = h - pad - ((v - minVal) / range) * (h - pad * 2);
+        return (x, y);
+    }).ToList();
+
+    string pathD = "M " + string.Join(" L ", points.Select(p => $"{p.x:F1},{p.y:F1}"));
+    string fillD = $"M {points[0].x:F1},{h - pad} "
+                 + string.Join(" ", points.Select(p => $"L {p.x:F1},{p.y:F1}"))
+                 + $" L {points.Last().x:F1},{h - pad} Z";
+
+    double? warnY = null;
+    if (WarningThreshold.HasValue)
+    {
+        double wv = Math.Clamp(WarningThreshold.Value, minVal, maxVal);
+        warnY = h - pad - ((wv - minVal) / range) * (h - pad * 2);
+    }
+
+    var minLabel = $"{minVal:F1}{Unit}";
+    var maxLabel = $"{maxVal:F1}{Unit}";
+    var maxLabelY = (h - pad - ((maxVal - minVal) / range * (h - pad * 2))).ToString("F0");
+    var minLabelY = (h - pad + 12).ToString("F0");
+
+    <div class="sparkline-wrap">
+        <svg viewBox="0 0 @w @h" preserveAspectRatio="none" class="sparkline-svg">
+            <path d="@fillD" fill="@FillColor" />
+            @if (warnY.HasValue)
+            {
+                var wy = warnY.Value.ToString("F1");
+                <line x1="@pad" y1="@wy" x2="@(w - pad)" y2="@wy"
+                      stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.7" />
+            }
+            <path d="@pathD" fill="none" stroke="@Color" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="@(points[0].x.ToString("F1"))" cy="@(points[0].y.ToString("F1"))" r="4" fill="@Color" opacity="0.6" />
+            <circle cx="@(points.Last().x.ToString("F1"))" cy="@(points.Last().y.ToString("F1"))" r="5" fill="@Color" />
+        </svg>
+        <div class="sparkline-footer">
+            <span class="sparkline-minmax">@minLabel</span>
+            @if (ShowLabels && Labels != null && Labels.Any())
+            {
+                <span class="sparkline-minmax" style="text-align:center;flex:1">@Labels[Labels.Count / 2]</span>
+            }
+            <span class="sparkline-minmax">@maxLabel</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    [Parameter] public List<double>? Values { get; set; }
+    [Parameter] public string Color { get; set; } = "#4f8ef7";
+    [Parameter] public string FillColor { get; set; } = "rgba(79,142,247,0.15)";
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter] public int Height { get; set; } = 120;
+    [Parameter] public double? Min { get; set; }
+    [Parameter] public double? Max { get; set; }
+    [Parameter] public bool ShowLabels { get; set; } = false;
+    [Parameter] public List<string>? Labels { get; set; }
+    [Parameter] public double? WarningThreshold { get; set; }
+}

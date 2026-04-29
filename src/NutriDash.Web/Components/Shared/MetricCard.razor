@@ -1,0 +1,28 @@
+<div class="metric-card card @(TrendPositive ? "trend-positive" : "trend-negative")">
+    <div class="metric-icon">@Icon</div>
+    <div class="metric-body">
+        <div class="metric-title">@Title</div>
+        <div class="metric-value">@Value</div>
+        <div class="metric-subtitle">@Subtitle</div>
+    </div>
+    @if (!string.IsNullOrEmpty(Trend))
+    {
+        <div class="metric-trend @(TrendPositive ? "trend-up" : "trend-down")">
+            <span>@Trend</span>
+            @if (!string.IsNullOrEmpty(TrendValue))
+            {
+                <small>@TrendValue</small>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string Subtitle { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public string Trend { get; set; } = "";
+    [Parameter] public string TrendValue { get; set; } = "";
+    [Parameter] public bool TrendPositive { get; set; } = true;
+}

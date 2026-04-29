@@ -1,0 +1,61 @@
+<div class="health-score-badge">
+    <svg viewBox="0 0 120 120" width="140" height="140">
+        <defs>
+            <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="@StartColor" />
+                <stop offset="100%" stop-color="@EndColor" />
+            </linearGradient>
+        </defs>
+        <!-- Background track -->
+        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10" />
+        <!-- Progress arc -->
+        <circle cx="60" cy="60" r="50" fill="none"
+                stroke="url(#scoreGrad)" stroke-width="10"
+                stroke-linecap="round"
+                stroke-dasharray="@Circumference"
+                stroke-dashoffset="@GetDashOffset()"
+                transform="rotate(-90 60 60)" />
+    </svg>
+    <div class="score-text">
+        <div class="score-number">@Score</div>
+        <div class="score-label">/ 100</div>
+        <div class="score-status @GetStatusClass()">@Status</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Score { get; set; }
+    [Parameter] public string Status { get; set; } = "";
+
+    private const double Circumference = 2 * Math.PI * 50; // ~314.16
+
+    private string StartColor => Score switch
+    {
+        >= 85 => "#00c896",
+        >= 65 => "#4f8ef7",
+        >= 45 => "#f59e0b",
+        _ => "#ef4444"
+    };
+
+    private string EndColor => Score switch
+    {
+        >= 85 => "#00e5b0",
+        >= 65 => "#7eb8ff",
+        >= 45 => "#fbbf24",
+        _ => "#f87171"
+    };
+
+    private double GetDashOffset()
+    {
+        var pct = Math.Clamp(Score / 100.0, 0, 1);
+        return Circumference * (1 - pct);
+    }
+
+    private string GetStatusClass() => Status switch
+    {
+        "Óptimo" => "status-optimal",
+        "Bueno" => "status-good",
+        "Mejorable" => "status-warn",
+        _ => "status-critical"
+    };
+}

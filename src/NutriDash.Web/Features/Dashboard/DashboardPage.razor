@@ -1,0 +1,183 @@
+@page "/"
+@page "/dashboard"
+@rendermode InteractiveServer
+@using NutriDash.Features.Dashboard
+@using NutriDash.Components.Shared
+@inject DashboardService DashSvc
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">@DateTime.Today.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("es-ES"))</p>
+    </div>
+    @if (!_loading && _summary != null && !_summary.HasTodayEntry)
+    {
+        <button class="btn btn-primary" @onclick='() => Nav.NavigateTo("/tracking")'>
+            <span>➕</span> Registrar hoy
+        </button>
+    }
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Cargando métricas...</span></div>
+}
+else if (_summary != null)
+{
+    <div class="score-hero">
+        <HealthScoreBadge Score="@((int)_summary.Score.Total)" Status="@_summary.Score.Status" />
+        <div class="score-breakdown">
+            <div class="score-item">
+                <span class="score-label">Peso</span>
+                <div class="score-bar"><div class="score-fill" style="width:@((_summary.Score.WeightScore / 30 * 100).ToString("F0"))%"></div></div>
+                <span class="score-val">@_summary.Score.WeightScore.ToString("F0")/30</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Tensión</span>
+                <div class="score-bar"><div class="score-fill score-fill-bp" style="width:@((_summary.Score.BpScore / 25 * 100).ToString("F0"))%"></div></div>
+                <span class="score-val">@_summary.Score.BpScore.ToString("F0")/25</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Energía</span>
+                <div class="score-bar"><div class="score-fill score-fill-energy" style="width:@((_summary.Score.EnergyScore / 20 * 100).ToString("F0"))%"></div></div>
+                <span class="score-val">@_summary.Score.EnergyScore.ToString("F0")/20</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Adherencia</span>
+                <div class="score-bar"><div class="score-fill score-fill-adh" style="width:@((_summary.Score.AdherenceScore / 25 * 100).ToString("F0"))%"></div></div>
+                <span class="score-val">@_summary.Score.AdherenceScore.ToString("F0")/25</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="metrics-grid">
+        <MetricCard
+            Title="Peso actual"
+            Value="@($"{_summary.CurrentWeight:F1} kg")"
+            Subtitle="@($"Objetivo: {_summary.GoalWeight:F1} kg")"
+            Icon="⚖️"
+            Trend="@WeightTrend"
+            TrendValue="@($"{_summary.WeightTrend7d:+0.0;-0.0} kg/sem")"
+            TrendPositive="@(_summary.WeightTrend7d < 0)" />
+
+        <MetricCard
+            Title="Tensión arterial"
+            Value="@($"{_summary.AvgSystolic:F0}/{_summary.AvgDiastolic:F0}")"
+            Subtitle="mmHg — media 7 días"
+            Icon="❤️"
+            Trend="@BpStatus"
+            TrendValue="@BpLabel"
+            TrendPositive="@(_summary.AvgSystolic < 130)" />
+
+        <MetricCard
+            Title="Adherencia dieta"
+            Value="@($"{_summary.AvgAdherence:F0}%")"
+            Subtitle="media últimos 7 días"
+            Icon="🎯"
+            Trend="@(_summary.AvgAdherence >= 75 ? "↑ Bien" : "↓ Mejorable")"
+            TrendValue=""
+            TrendPositive="@(_summary.AvgAdherence >= 75)" />
+
+        <MetricCard
+            Title="Energía media"
+            Value="@($"{_summary.AvgEnergy:F1}/5")"
+            Subtitle="últimos 7 días"
+            Icon="⚡"
+            Trend="@EnergyLabel"
+            TrendValue=""
+            TrendPositive="@(_summary.AvgEnergy >= 3.5)" />
+    </div>
+
+    <div class="charts-grid">
+        <div class="card">
+            <div class="card-header"><h3>Evolución del peso</h3><span class="badge">14 días</span></div>
+            <SparklineChart Values="@_summary.WeightHistory.Select(w => (double)w).ToList()"
+                            Color="#4f8ef7" FillColor="rgba(79,142,247,0.15)" Unit="kg" Height="120" />
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>Tensión sistólica</h3><span class="badge">14 días</span></div>
+            <SparklineChart Values="@_summary.BpSystolicHistory.Select(v => (double)v).ToList()"
+                            Color="#f75f4f" FillColor="rgba(247,95,79,0.15)" Unit="mmHg" Height="120"
+                            WarningThreshold="130" />
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>Energía diaria</h3><span class="badge">14 días</span></div>
+            <SparklineChart Values="@_summary.EnergyHistory"
+                            Color="#00c896" FillColor="rgba(0,200,150,0.15)"
+                            Unit="/5" Height="120" Min="1" Max="5" />
+        </div>
+    </div>
+
+    @if (!_summary.HasTodayEntry)
+    {
+        <div class="alert alert-warning">
+            <span>⚠️</span>
+            <div>
+                <strong>Sin registro hoy</strong>
+                <p>Registra tus métricas de hoy para mantener el tracking actualizado.</p>
+            </div>
+            <button class="btn btn-sm" @onclick='() => Nav.NavigateTo("/tracking")'>Registrar ahora</button>
+        </div>
+    }
+}
+
+@code {
+    private DashboardSummary? _summary;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _summary = await DashSvc.GetSummaryAsync();
+        _loading = false;
+    }
+
+    private string WeightTrend
+    {
+        get
+        {
+            var v = _summary!.WeightTrend7d;
+            if (v < -0.3m) return "↓ Bajando bien";
+            if (v < 0m) return "↓ Ligera baja";
+            if (v == 0m) return "→ Estable";
+            return "↑ Subiendo";
+        }
+    }
+
+    private string BpStatus
+    {
+        get
+        {
+            var v = _summary!.AvgSystolic;
+            if (v < 120) return "✓ Normal";
+            if (v < 130) return "△ Normal-alta";
+            return "⚠ Elevada";
+        }
+    }
+
+    private string BpLabel
+    {
+        get
+        {
+            var v = _summary!.AvgSystolic;
+            if (v < 120) return "Óptima";
+            if (v < 130) return "Normal-alta";
+            if (v < 140) return "Hipertensión G1";
+            return "Hipertensión G2";
+        }
+    }
+
+    private string EnergyLabel
+    {
+        get
+        {
+            var v = _summary!.AvgEnergy;
+            if (v >= 4.5) return "💪 Excelente";
+            if (v >= 3.5) return "✓ Buena";
+            if (v >= 2.5) return "△ Moderada";
+            return "⚠ Baja";
+        }
+    }
+}

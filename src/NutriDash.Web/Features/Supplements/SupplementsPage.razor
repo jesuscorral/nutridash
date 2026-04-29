@@ -1,0 +1,115 @@
+@page "/supplements"
+@rendermode InteractiveServer
+@using NutriDash.Features.Supplements
+@using NutriDash.Infrastructure.Services
+@inject SupplementsService SupplSvc
+
+<PageTitle>Suplementación — NutriDash</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Suplementación</h1>
+        <p class="page-subtitle">Recomendaciones adaptadas a tus métricas actuales</p>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div class="loading-state"><div class="spinner"></div><span>Calculando recomendaciones...</span></div>
+}
+else
+{
+    <div class="suppl-grid">
+        @foreach (var rec in _recommendations)
+        {
+            <div class="suppl-card card @GetPriorityClass(rec.Priority)">
+                <div class="suppl-header">
+                    <div class="suppl-icon">@GetSupplIcon(rec.Name)</div>
+                    <div class="suppl-info">
+                        <h3>@rec.Name</h3>
+                        <div class="suppl-meta">
+                            <span class="suppl-dose">💊 @rec.Dose</span>
+                            <span class="suppl-timing">⏰ @rec.Timing</span>
+                        </div>
+                    </div>
+                    <span class="priority-badge priority-@rec.Priority.ToLower()">@rec.Priority</span>
+                </div>
+                <p class="suppl-reason">@rec.Reason</p>
+                <button class="btn btn-sm btn-success" @onclick="() => LogTaken(rec.Name, rec.Dose)">
+                    ✅ Registrar toma de hoy
+                </button>
+            </div>
+        }
+    </div>
+
+    @if (_recentLogs.Any())
+    {
+        <div class="card" style="margin-top:1.5rem">
+            <div class="card-header"><h3>📋 Registro reciente de tomas</h3></div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Fecha</th><th>Suplemento</th><th>Dosis</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in _recentLogs.Take(20))
+                        {
+                            <tr>
+                                <td>@log.Date.ToString("dd/MM")</td>
+                                <td>@log.Name</td>
+                                <td>@log.Dose</td>
+                                <td><span class="badge badge-green">✅ Tomado</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_msg))
+    {
+        <div class="toast">@_msg</div>
+    }
+}
+
+@code {
+    private List<SupplementRecommendation> _recommendations = new();
+    private List<NutriDash.Infrastructure.Data.Entities.SupplementLog> _recentLogs = new();
+    private bool _loading = true;
+    private string? _msg;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _recommendations = await SupplSvc.GetRecommendationsAsync();
+        _recentLogs = await SupplSvc.GetLogsAsync();
+        _loading = false;
+    }
+
+    private async Task LogTaken(string name, string dose)
+    {
+        await SupplSvc.LogTakenAsync(name, dose);
+        _recentLogs = await SupplSvc.GetLogsAsync();
+        _msg = $"✅ {name} registrado.";
+        StateHasChanged();
+        await Task.Delay(2500);
+        _msg = null;
+        StateHasChanged();
+    }
+
+    private static string GetSupplIcon(string name) => name.ToLower() switch
+    {
+        var n when n.Contains("omega") => "🐟",
+        var n when n.Contains("magnesio") => "💎",
+        var n when n.Contains("creatina") => "💪",
+        var n when n.Contains("vitamina") => "☀️",
+        _ => "💊"
+    };
+
+    private static string GetPriorityClass(string p) => p switch
+    {
+        "Alta" => "suppl-high",
+        "Media" => "suppl-medium",
+        _ => "suppl-low"
+    };
+}

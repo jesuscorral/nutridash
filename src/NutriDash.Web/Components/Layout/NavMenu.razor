@@ -1,0 +1,50 @@
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">🥗</div>
+        <div class="brand-text">
+            <span class="brand-name">NutriDash</span>
+            <span class="brand-tagline">Health Coach</span>
+        </div>
+    </div>
+
+    <ul class="nav-list">
+        <li><NavLink href="/" Match="NavLinkMatch.All" class="nav-link" ActiveClass="nav-link-active">
+            <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+        </NavLink></li>
+        <li><NavLink href="/tracking" class="nav-link" ActiveClass="nav-link-active">
+            <span class="nav-icon">📝</span><span class="nav-label">Tracking</span>
+        </NavLink></li>
+        <li><NavLink href="/analytics" class="nav-link" ActiveClass="nav-link-active">
+            <span class="nav-icon">📈</span><span class="nav-label">Analítica</span>
+        </NavLink></li>
+        <li><NavLink href="/meal-plan" class="nav-link" ActiveClass="nav-link-active">
+            <span class="nav-icon">🍽️</span><span class="nav-label">Plan de Comidas</span>
+        </NavLink></li>
+        <li><NavLink href="/shopping-list" class="nav-link" ActiveClass="nav-link-active">
+            <span class="nav-icon">🛒</span><span class="nav-label">Lista Compra</span>
+        </NavLink></li>
+        <li><NavLink href="/supplements" class="nav-link" ActiveClass="nav-link-active">
+            <span class="nav-icon">💊</span><span class="nav-label">Suplementos</span>
+        </NavLink></li>
+    </ul>
+
+    <div class="nav-footer">
+        <NavLink href="/settings" class="nav-link nav-link-settings" ActiveClass="nav-link-active">
+            <span class="nav-icon">⚙️</span><span class="nav-label">Configuración</span>
+        </NavLink>
+    </div>
+</nav>
+
+<!-- Mobile bottom nav -->
+<div class="mobile-nav">
+    <NavLink href="/" Match="NavLinkMatch.All" class="mob-link" ActiveClass="mob-link-active"><span>📊</span></NavLink>
+    <NavLink href="/tracking" class="mob-link" ActiveClass="mob-link-active"><span>📝</span></NavLink>
+    <NavLink href="/analytics" class="mob-link" ActiveClass="mob-link-active"><span>📈</span></NavLink>
+    <NavLink href="/meal-plan" class="mob-link" ActiveClass="mob-link-active"><span>🍽️</span></NavLink>
+    <NavLink href="/shopping-list" class="mob-link" ActiveClass="mob-link-active"><span>🛒</span></NavLink>
+    <NavLink href="/supplements" class="mob-link" ActiveClass="mob-link-active"><span>💊</span></NavLink>
+    <NavLink href="/settings" class="mob-link" ActiveClass="mob-link-active"><span>⚙️</span></NavLink>
+</div>

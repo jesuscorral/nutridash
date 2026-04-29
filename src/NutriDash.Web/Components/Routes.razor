@@ -1,0 +1,16 @@
+<Router AppAssembly="@typeof(Routes).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(NutriDash.Components.Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>No encontrado — NutriDash</PageTitle>
+        <LayoutView Layout="@typeof(NutriDash.Components.Layout.MainLayout)">
+            <div class="empty-state" style="margin-top:4rem">
+                <span style="font-size:3rem">🔍</span>
+                <h2>Página no encontrada</h2>
+                <a href="/" class="btn btn-primary">Volver al Dashboard</a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
