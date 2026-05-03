@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:15
     container_name: nutridash-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nutridash}
@@ -31,6 +31,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-nutridash};Username=${POSTGRES_USER:-nutridash};Password=${POSTGRES_PASSWORD:-nutridash_dev_password};Include Error Detail=true
     restart: unless-stopped
+    volumes:
+      - dataprotection_keys:/app/dataprotection-keys
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 30s
@@ -40,4 +42,6 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  dataprotection_keys:
     driver: local

@@ -9,11 +9,16 @@ using NutriDash.Features.ShoppingList;
 using NutriDash.Features.Supplements;
 using NutriDash.Features.Settings;
 using NutriDash.ServiceDefaults;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Service Defaults (Aspire) ─────────────────────────────────────────────────
 builder.AddServiceDefaults();
+
+// ── Data Protection (persist keys so antiforgery tokens survive restarts) ────
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection-keys"));
 
 // ── Database ─────────────────────────────────────────────────────────────────
 builder.AddNpgsqlDbContext<AppDbContext>("DefaultConnection");
