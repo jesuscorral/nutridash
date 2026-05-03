@@ -17,8 +17,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // ── Data Protection (persist keys so antiforgery tokens survive restarts) ────
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection-keys"));
+// Only persist to filesystem in Production (Docker volume); in Development the
+// in-memory default is fine and avoids path issues on Windows.
+var dpBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("nutridash");
+if (!builder.Environment.IsDevelopment())
+    dpBuilder.PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection-keys"));
 
 // ── Database ─────────────────────────────────────────────────────────────────
 builder.AddNpgsqlDbContext<AppDbContext>("DefaultConnection");
@@ -68,7 +72,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseStaticFiles();
+// MapStaticAssets serves files from the static-web-assets manifest, which
+// handles the content-addressed (fingerprinted) paths used in Production.
+// UseStaticFiles() only resolves physical file names and misses blazor.web.js.
+app.MapStaticAssets();
 app.UseAntiforgery();
 
 app.MapRazorComponents<NutriDash.Components.App>()

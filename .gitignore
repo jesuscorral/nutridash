@@ -8,6 +8,11 @@ obj/
 *.userosscache
 *.sln.docstates
 *.userprefs
+
+############################
+# Docker local overrides
+############################
+docker-compose.override.yml
 project.lock.json
 project.fragment.lock.json
 artifacts/

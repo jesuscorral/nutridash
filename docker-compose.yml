@@ -45,3 +45,9 @@ volumes:
     driver: local
   dataprotection_keys:
     driver: local
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1420"

@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+.git/
+.github/
+docker-compose.override.yml
+.env
+README.md
+data/
