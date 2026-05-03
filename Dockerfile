@@ -2,10 +2,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+# Copy props and both project files first (layer-cache friendly restore)
 COPY Directory.Packages.props ./
+COPY src/NutriDash.ServiceDefaults/NutriDash.ServiceDefaults.csproj ./NutriDash.ServiceDefaults/
 COPY src/NutriDash.Web/NutriDash.Web.csproj ./NutriDash.Web/
 RUN dotnet restore ./NutriDash.Web/NutriDash.Web.csproj
 
+# Copy full source for both projects, then publish
+COPY src/NutriDash.ServiceDefaults/ ./NutriDash.ServiceDefaults/
 COPY src/NutriDash.Web/ ./NutriDash.Web/
 RUN dotnet publish ./NutriDash.Web/NutriDash.Web.csproj \
     -c Release -o /app/publish \
