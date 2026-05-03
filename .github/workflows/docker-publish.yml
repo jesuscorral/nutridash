@@ -76,6 +76,15 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
+      - name: Ensure Docker is available
+        run: |
+          sudo systemctl start docker
+          sudo usermod -aG docker "$USER"
+          # Apply group change for this session:
+          newgrp docker <<'EOF'
+          docker version
+          EOF
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v2
         with:
