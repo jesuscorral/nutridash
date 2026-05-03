@@ -19,9 +19,7 @@ services:
       start_period: 10s
 
   nutridash:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: jesuscorral/nutridash:latest
     container_name: nutridash
     depends_on:
       postgres:
