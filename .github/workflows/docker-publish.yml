@@ -85,10 +85,11 @@ jobs:
           docker version
           EOF
 
-      - name: Connect to Tailscale
+      - name: Connect to Tailscale (OAuth)
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-client-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
 
       - name: Deploy via SSH (Tailscale)
         uses: appleboy/ssh-action@v1
