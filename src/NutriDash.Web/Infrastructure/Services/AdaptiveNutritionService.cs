@@ -18,6 +18,13 @@ public record AdaptiveContext(
 
 public class AdaptiveNutritionService
 {
+    private readonly ILogger<AdaptiveNutritionService> _logger;
+
+    public AdaptiveNutritionService(ILogger<AdaptiveNutritionService> logger)
+    {
+        _logger = logger;
+    }
+
     public AdaptiveContext BuildContext(
         IEnumerable<DailyTracking> recentDays,
         UserMetric user)
@@ -25,6 +32,7 @@ public class AdaptiveNutritionService
         var days = recentDays.OrderByDescending(d => d.Date).ToList();
         if (!days.Any())
         {
+            _logger.LogWarning("BuildContext: no tracking data found, returning defaults");
             return new AdaptiveContext(user.GoalWeight + 5, user.GoalWeight, 0,
                 120, 80, 3, 70, 7,
                 Array.Empty<WorkoutType>(), Array.Empty<string>(), "No hay datos de tracking disponibles.");
@@ -72,12 +80,15 @@ public class AdaptiveNutritionService
             notes.Add($"Adherencia {avgAdh:F0}% → simplificar el plan, pocas recetas rotativas.");
         }
 
-        return new AdaptiveContext(
+        var context = new AdaptiveContext(
             currentWeight, user.GoalWeight, weekDelta,
             avgSys, avgDia, avgEnergy, avgAdh, avgSleep,
             schedule, flags.ToArray(),
             string.Join(" ", notes)
         );
+        _logger.LogInformation("AdaptiveContext built: Weight={W}kg Goal={G}kg Delta={D:+0.0;-0.0;0.0}kg Flags=[{F}]",
+            currentWeight, user.GoalWeight, weekDelta, string.Join(", ", flags));
+        return context;
     }
 
     public string BuildMealPlanPrompt(AdaptiveContext ctx, UserMetric user)

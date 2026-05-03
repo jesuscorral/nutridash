@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nutridash-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nutridash}
+      POSTGRES_USER: ${POSTGRES_USER:-nutridash}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nutridash_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nutridash} -d ${POSTGRES_DB:-nutridash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  nutridash:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nutridash
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-nutridash};Username=${POSTGRES_USER:-nutridash};Password=${POSTGRES_PASSWORD:-nutridash_dev_password};Include Error Detail=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  postgres_data:
+    driver: local

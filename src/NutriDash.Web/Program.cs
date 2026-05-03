@@ -8,21 +8,15 @@ using NutriDash.Features.MealPlan;
 using NutriDash.Features.ShoppingList;
 using NutriDash.Features.Supplements;
 using NutriDash.Features.Settings;
+using NutriDash.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Service Defaults (Aspire) ─────────────────────────────────────────────────
+builder.AddServiceDefaults();
+
 // ── Database ─────────────────────────────────────────────────────────────────
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Data Source=/app/data/nutridash.db";
-
-// Ensure directory exists (for Docker volume)
-var dbPath = connStr.Replace("Data Source=", "").Trim();
-var dbDir = Path.GetDirectoryName(dbPath);
-if (!string.IsNullOrEmpty(dbDir) && !Directory.Exists(dbDir))
-    Directory.CreateDirectory(dbDir);
-
-builder.Services.AddDbContext<AppDbContext>(opts =>
-    opts.UseSqlite(connStr));
+builder.AddNpgsqlDbContext<AppDbContext>("DefaultConnection");
 
 // ── HTTP Client ───────────────────────────────────────────────────────────────
 builder.Services.AddHttpClient("Gemini", client =>
@@ -51,10 +45,14 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+// ── Service Defaults Endpoints (Aspire) ───────────────────────────────────────
+app.MapDefaultEndpoints();
+
 // ── DB init + seed ────────────────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
     SeedData.Initialize(db);
 }
 

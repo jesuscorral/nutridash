@@ -1,0 +1,39 @@
+{
+  "agents": {
+    "torete": {
+      "persistent_name": "Torete",
+      "universe": "Cine quinqui espanol",
+      "created_at": "2026-04-29T21:50:01.959+02:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "pera": {
+      "persistent_name": "Pera",
+      "universe": "Cine quinqui espanol",
+      "created_at": "2026-04-29T21:50:01.959+02:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "vaquilla": {
+      "persistent_name": "Vaquilla",
+      "universe": "Cine quinqui espanol",
+      "created_at": "2026-04-29T21:50:01.959+02:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "jaro": {
+      "persistent_name": "Jaro",
+      "universe": "Cine quinqui espanol",
+      "created_at": "2026-04-29T21:50:01.959+02:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "pirri": {
+      "persistent_name": "Pirri",
+      "universe": "Cine quinqui espanol",
+      "created_at": "2026-04-29T21:50:01.959+02:00",
+      "legacy_named": false,
+      "status": "active"
+    }
+  }
+}

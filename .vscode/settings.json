@@ -1,0 +1,21 @@
+{
+  "dotnet.defaultSolution": "NutriDash.slnx",
+  "editor.formatOnSave": true,
+  "editor.formatOnType": false,
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/.git": true
+  },
+  "omnisharp.enableEditorConfigSupport": true,
+  "omnisharp.enableRoslynAnalyzers": true,
+  "csharp.debug.justMyCode": true,
+  "csharp.debug.console": "integratedTerminal",
+  "razor.server.trace": "Off",
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[razor]": {
+    "editor.defaultFormatter": "ms-dotnettools.blazorwasm-companion"
+  }
+}

@@ -9,11 +9,13 @@ public class SupplementsService
 {
     private readonly AppDbContext _db;
     private readonly SupplementRecommendationService _recommender;
+    private readonly ILogger<SupplementsService> _logger;
 
-    public SupplementsService(AppDbContext db, SupplementRecommendationService recommender)
+    public SupplementsService(AppDbContext db, SupplementRecommendationService recommender, ILogger<SupplementsService> logger)
     {
         _db = db;
         _recommender = recommender;
+        _logger = logger;
     }
 
     public async Task<List<SupplementRecommendation>> GetRecommendationsAsync()
@@ -42,10 +44,14 @@ public class SupplementsService
         {
             _db.SupplementLogs.Add(new SupplementLog
             {
-                Date = today, Name = name, Dose = dose,
-                Reason = "Log manual", Taken = true
+                Date = today,
+                Name = name,
+                Dose = dose,
+                Reason = "Log manual",
+                Taken = true
             });
             await _db.SaveChangesAsync();
+            _logger.LogInformation("Supplement logged: {Name} {Dose} on {Date}", name, dose, today);
         }
     }
 }

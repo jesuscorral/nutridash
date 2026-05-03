@@ -1,0 +1,13 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="src/NutriDash.AppHost/NutriDash.AppHost.csproj" />
+  <Project Path="src/NutriDash.ServiceDefaults/NutriDash.ServiceDefaults.csproj" />
+  <Project Path="src/NutriDash.Web/NutriDash.Web.csproj" />
+</Solution>

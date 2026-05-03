@@ -7,8 +7,13 @@ namespace NutriDash.Features.DailyTracking;
 public class TrackingService
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<TrackingService> _logger;
 
-    public TrackingService(AppDbContext db) => _db = db;
+    public TrackingService(AppDbContext db, ILogger<TrackingService> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     public async Task<List<Entities.DailyTracking>> GetRecentAsync(int days = 14)
         => await _db.DailyTrackings
@@ -37,16 +42,19 @@ public class TrackingService
                 existing.Energy = entry.Energy;
                 existing.Adherence = entry.Adherence;
                 existing.Notes = entry.Notes;
+                _logger.LogInformation("Tracking entry updated for {Date}", entry.Date);
             }
             else
             {
                 _db.DailyTrackings.Add(entry);
+                _logger.LogInformation("Tracking entry created for {Date}", entry.Date);
             }
             await _db.SaveChangesAsync();
             return (true, null);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to save tracking entry for {Date}", entry.Date);
             return (false, ex.Message);
         }
     }
@@ -57,6 +65,7 @@ public class TrackingService
         if (entry == null) return false;
         _db.DailyTrackings.Remove(entry);
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Tracking entry {Id} ({Date}) deleted", id, entry.Date);
         return true;
     }
 }

@@ -25,11 +25,13 @@ public class DashboardService
 {
     private readonly AppDbContext _db;
     private readonly HealthScoringService _scorer;
+    private readonly ILogger<DashboardService> _logger;
 
-    public DashboardService(AppDbContext db, HealthScoringService scorer)
+    public DashboardService(AppDbContext db, HealthScoringService scorer, ILogger<DashboardService> logger)
     {
         _db = db;
         _scorer = scorer;
+        _logger = logger;
     }
 
     public async Task<DashboardSummary> GetSummaryAsync()
@@ -38,6 +40,9 @@ public class DashboardService
         var recent = await _db.DailyTrackings
             .OrderByDescending(t => t.Date)
             .Take(14).ToListAsync();
+
+        if (!recent.Any())
+            _logger.LogDebug("GetSummaryAsync: no tracking data available");
 
         var week1 = recent.Take(7).ToList();
         var week2 = recent.Skip(7).Take(7).ToList();

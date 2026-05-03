@@ -26,13 +26,22 @@ public class GeminiService
     {
         // Priority: env var > db setting > appsettings.json
         var envKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
-        if (!string.IsNullOrWhiteSpace(envKey)) return envKey;
+        if (!string.IsNullOrWhiteSpace(envKey))
+        {
+            _logger.LogDebug("Gemini API key resolved from environment variable");
+            return envKey;
+        }
 
         using var scope = _scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var setting = await ctx.AppSettings.FirstOrDefaultAsync(s => s.Key == "GeminiApiKey");
-        if (!string.IsNullOrWhiteSpace(setting?.Value)) return setting.Value;
+        if (!string.IsNullOrWhiteSpace(setting?.Value))
+        {
+            _logger.LogDebug("Gemini API key resolved from database AppSettings");
+            return setting.Value;
+        }
 
+        _logger.LogDebug("Gemini API key resolved from appsettings.json");
         return _config["Gemini:ApiKey"];
     }
 
@@ -45,6 +54,8 @@ public class GeminiService
 
         var baseUrl = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
         int maxRetries = int.TryParse(_config["Gemini:MaxRetries"], out var r) ? r : 3;
+        _logger.LogDebug("GenerateAsync: model={Model} maxRetries={MaxRetries} promptLength={Len}",
+            model, maxRetries, prompt.Length);
 
         var requestBody = new
         {
@@ -75,6 +86,8 @@ public class GeminiService
                 var responseBody = await response.Content.ReadAsStringAsync(ct);
                 var node = JsonNode.Parse(responseBody);
                 var text = node?["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.GetValue<string>();
+                _logger.LogInformation("GenerateAsync succeeded on attempt {A}: responseLength={Len}",
+                    attempt, text?.Length ?? 0);
                 return text;
             }
             catch (OperationCanceledException) { throw; }

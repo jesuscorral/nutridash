@@ -12,11 +12,13 @@ public class ShoppingListService
 {
     private readonly AppDbContext _db;
     private readonly GeminiService _gemini;
+    private readonly ILogger<ShoppingListService> _logger;
 
-    public ShoppingListService(AppDbContext db, GeminiService gemini)
+    public ShoppingListService(AppDbContext db, GeminiService gemini, ILogger<ShoppingListService> logger)
     {
         _db = db;
         _gemini = gemini;
+        _logger = logger;
     }
 
     public async Task<List<ShoppingCategory>> GenerateFromCurrentWeekAsync()
@@ -30,7 +32,11 @@ public class ShoppingListService
             .Where(i => i.Meal.MealPlan.WeekStartDate == monday)
             .ToListAsync();
 
-        if (!ingredients.Any()) return new List<ShoppingCategory>();
+        if (!ingredients.Any())
+        {
+            _logger.LogDebug("GenerateFromCurrentWeekAsync: no ingredients found for week starting {Monday}", monday);
+            return new List<ShoppingCategory>();
+        }
 
         // Consolidate by name + category
         var consolidated = ingredients
@@ -47,13 +53,23 @@ public class ShoppingListService
 
         var categoryOrder = new Dictionary<string, int>
         {
-            ["Proteínas"] = 0, ["Lácteos"] = 1, ["Verduras"] = 2,
-            ["Carbohidratos"] = 3, ["Grasas saludables"] = 4, ["Frutas"] = 5, ["Otros"] = 6
+            ["Proteínas"] = 0,
+            ["Lácteos"] = 1,
+            ["Verduras"] = 2,
+            ["Carbohidratos"] = 3,
+            ["Grasas saludables"] = 4,
+            ["Frutas"] = 5,
+            ["Otros"] = 6
         };
         var categoryIcons = new Dictionary<string, string>
         {
-            ["Proteínas"] = "🥩", ["Lácteos"] = "🥛", ["Verduras"] = "🥦",
-            ["Carbohidratos"] = "🌾", ["Grasas saludables"] = "🥑", ["Frutas"] = "🍎", ["Otros"] = "🧂"
+            ["Proteínas"] = "🥩",
+            ["Lácteos"] = "🥛",
+            ["Verduras"] = "🥦",
+            ["Carbohidratos"] = "🌾",
+            ["Grasas saludables"] = "🥑",
+            ["Frutas"] = "🍎",
+            ["Otros"] = "🧂"
         };
 
         return consolidated

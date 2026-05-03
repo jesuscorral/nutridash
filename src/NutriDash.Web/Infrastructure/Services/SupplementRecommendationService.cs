@@ -12,6 +12,13 @@ public record SupplementRecommendation(
 
 public class SupplementRecommendationService
 {
+    private readonly ILogger<SupplementRecommendationService> _logger;
+
+    public SupplementRecommendationService(ILogger<SupplementRecommendationService> logger)
+    {
+        _logger = logger;
+    }
+
     public List<SupplementRecommendation> GetRecommendations(
         IEnumerable<DailyTracking> recent,
         UserMetric targets)
@@ -19,7 +26,11 @@ public class SupplementRecommendationService
         var list = recent.ToList();
         var recs = new List<SupplementRecommendation>();
 
-        if (!list.Any()) return GetDefaultRecommendations();
+        if (!list.Any())
+        {
+            _logger.LogDebug("GetRecommendations: no tracking data, returning defaults");
+            return GetDefaultRecommendations();
+        }
 
         var avgSys = list.Average(t => t.SystolicBP);
         var avgSleep = (double)list.Average(t => t.Sleep);
@@ -83,6 +94,7 @@ public class SupplementRecommendationService
             ));
         }
 
+        _logger.LogDebug("GetRecommendations: returning {Count} recommendations", recs.Count);
         return recs;
     }
 

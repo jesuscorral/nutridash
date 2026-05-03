@@ -1,0 +1,43 @@
+{
+  "universe_usage_history": [
+    {
+      "assignment_id": "2026-04-29-nutridash-initial-cast",
+      "universe": "Cine quinqui espanol",
+      "created_at": "2026-04-29T21:50:01.959+02:00"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "2026-04-29-nutridash-initial-cast": {
+      "project": "nutridash",
+      "owner": "Jesus",
+      "created_at": "2026-04-29T21:50:01.959+02:00",
+      "members": [
+        {
+          "agent_id": "torete",
+          "persistent_name": "Torete",
+          "role": "Lead"
+        },
+        {
+          "agent_id": "pera",
+          "persistent_name": "Pera",
+          "role": "Frontend Dev"
+        },
+        {
+          "agent_id": "vaquilla",
+          "persistent_name": "Vaquilla",
+          "role": "Backend Dev"
+        },
+        {
+          "agent_id": "jaro",
+          "persistent_name": "Jaro",
+          "role": "Tester"
+        },
+        {
+          "agent_id": "pirri",
+          "persistent_name": "Pirri",
+          "role": "DevOps / Infra"
+        }
+      ]
+    }
+  }
+}

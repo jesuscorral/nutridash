@@ -13,6 +13,13 @@ public record HealthScoreBreakdown(
 
 public class HealthScoringService
 {
+    private readonly ILogger<HealthScoringService> _logger;
+
+    public HealthScoringService(ILogger<HealthScoringService> logger)
+    {
+        _logger = logger;
+    }
+
     // Weights must sum to 100
     private const double WeightWeight = 30;
     private const double BpWeight = 25;
@@ -84,6 +91,9 @@ public class HealthScoringService
             >= 45 => "Mejorable",
             _ => "Crítico"
         };
+
+        _logger.LogDebug("HealthScore calculated: Weight={W:F1} BP={B:F1} Energy={E:F1} Adherence={A:F1} Total={T:F1} Status={S}",
+            weightScore, bpScore, energyScore, adherenceScore, total, status);
 
         return new HealthScoreBreakdown(weightScore, bpScore, energyScore, adherenceScore, total, status);
     }

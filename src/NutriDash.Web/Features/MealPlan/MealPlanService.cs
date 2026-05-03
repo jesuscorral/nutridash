@@ -11,12 +11,14 @@ public class MealPlanService
     private readonly AppDbContext _db;
     private readonly GeminiService _gemini;
     private readonly AdaptiveNutritionService _adaptive;
+    private readonly ILogger<MealPlanService> _logger;
 
-    public MealPlanService(AppDbContext db, GeminiService gemini, AdaptiveNutritionService adaptive)
+    public MealPlanService(AppDbContext db, GeminiService gemini, AdaptiveNutritionService adaptive, ILogger<MealPlanService> logger)
     {
         _db = db;
         _gemini = gemini;
         _adaptive = adaptive;
+        _logger = logger;
     }
 
     public async Task<List<NutriDash.Infrastructure.Data.Entities.MealPlan>> GetCurrentWeekAsync()
@@ -60,6 +62,9 @@ public class MealPlanService
             var recent = await _db.DailyTrackings
                 .OrderByDescending(t => t.Date).Take(14).ToListAsync();
 
+            _logger.LogInformation("Generating new meal plan week for '{Name}' ({DataPoints} tracking days)",
+                user.Name, recent.Count);
+
             var ctx = _adaptive.BuildContext(recent, user);
             var prompt = _adaptive.BuildMealPlanPrompt(ctx, user);
 
@@ -96,10 +101,13 @@ public class MealPlanService
             }
 
             await _db.SaveChangesAsync();
+            _logger.LogInformation("Meal plan batch {Batch} saved: {Days} days for week starting {Monday}",
+                newBatch, plans.Count, monday);
             return (true, null);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to generate meal plan week");
             return (false, ex.Message);
         }
     }
@@ -113,13 +121,20 @@ public class MealPlanService
             var plans = new List<NutriDash.Infrastructure.Data.Entities.MealPlan>();
             var dayMap = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
             {
-                ["Lunes"] = DayOfWeek.Monday, ["Monday"] = DayOfWeek.Monday,
-                ["Martes"] = DayOfWeek.Tuesday, ["Tuesday"] = DayOfWeek.Tuesday,
-                ["Miércoles"] = DayOfWeek.Wednesday, ["Wednesday"] = DayOfWeek.Wednesday,
-                ["Jueves"] = DayOfWeek.Thursday, ["Thursday"] = DayOfWeek.Thursday,
-                ["Viernes"] = DayOfWeek.Friday, ["Friday"] = DayOfWeek.Friday,
-                ["Sábado"] = DayOfWeek.Saturday, ["Saturday"] = DayOfWeek.Saturday,
-                ["Domingo"] = DayOfWeek.Sunday, ["Sunday"] = DayOfWeek.Sunday
+                ["Lunes"] = DayOfWeek.Monday,
+                ["Monday"] = DayOfWeek.Monday,
+                ["Martes"] = DayOfWeek.Tuesday,
+                ["Tuesday"] = DayOfWeek.Tuesday,
+                ["Miércoles"] = DayOfWeek.Wednesday,
+                ["Wednesday"] = DayOfWeek.Wednesday,
+                ["Jueves"] = DayOfWeek.Thursday,
+                ["Thursday"] = DayOfWeek.Thursday,
+                ["Viernes"] = DayOfWeek.Friday,
+                ["Friday"] = DayOfWeek.Friday,
+                ["Sábado"] = DayOfWeek.Saturday,
+                ["Saturday"] = DayOfWeek.Saturday,
+                ["Domingo"] = DayOfWeek.Sunday,
+                ["Sunday"] = DayOfWeek.Sunday
             };
 
             foreach (var dayEl in weekPlan.EnumerateArray())
